@@ -4,10 +4,13 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-      "test": "echo yes",
+    "test": "echo yes",
     "start": "node server.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
