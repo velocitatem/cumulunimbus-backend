@@ -2,20 +2,23 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { Client: ServiceClient} = require('azure-iothub');
+const { Client: ServiceClient, Registry} = require('azure-iothub');
 const { Message } = require('azure-iot-common');
+require('dotenv').config()
+// import uuid
+const { v4: uuidv4 } = require('uuid');
 
 
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(cors());
 
 
-
 // azure iot hub connection
-const connectionString = 'HostName=Cumulonimbus.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=70+uDUmL/oVHTnRMVTbLiJpNfeOwPPAoRAIoTHkXlc0=';
+const connectionString = process.env.AZK
 const clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 // Service client for Azure IoT Hub
 const serviceClient = ServiceClient.fromConnectionString(connectionString);
+const registry = Registry.fromConnectionString(connectionString);
 
 
 // connect to azure iot hub
@@ -37,16 +40,30 @@ app.post("/open/:id", async (req, res) => {
     // just log it for now
     const {state} = req.body;
     const deviceId = req.params.id;
+    const actionId = uuidv4();
     const command = state ? 'open' : 'close';
     // Create a message and send it to the IoT Hub for a specific device
     const message = new Message(JSON.stringify({ command }));
     try {
         await serviceClient.send(deviceId, message);
-        res.send(`Command to ${command} sent to device ${deviceId}`);
+        res.status(200).json({
+            actionId,
+        })
     } catch (err) {
         console.error('Could not send message: ' + err.message);
         res.status(500).send('Failed to send message');
     }
+});
+
+app.get('/devices', async (req, res) => {
+    registry.list((err, deviceList) => {
+        if (err) {
+            res.status(500).send('Error retrieving device list: ' + err.message);
+        } else {
+            const deviceIds = deviceList.map(device => device.deviceId);
+            res.send(deviceIds);
+        }
+    });
 });
 
 

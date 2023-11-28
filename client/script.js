@@ -75,11 +75,28 @@ function onStop(request, response) {
   });
 }
 
+function updateDatabase(actionId, deviceId, command) {
+
+    // connect to database
+}
+
+
 function receiveMessageCallback(msg) {
   blinkLED();
   var message = msg.getData().toString('utf-8');
   client.complete(msg, function () {
-    console.log('Receive message: ' + message);
+        console.log('Receive message: ' + message);
+        const {actionId, deviceId, command} = JSON.parse(message);
+        // check for open or close command
+        if (message === 'open') {
+            wpi.digitalWrite(LEDPin, 1);
+        }
+        else if (message === 'close') {
+            wpi.digitalWrite(LEDPin, 0);
+        }
+
+        // update database
+        updateDatabase(actionId, deviceId, command);
   });
 }
 
