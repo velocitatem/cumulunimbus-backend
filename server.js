@@ -1,12 +1,26 @@
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
+const cosmos = require('@azure/cosmos');
 const cors = require('cors');
 const { Client: ServiceClient, Registry} = require('azure-iothub');
 const { Message } = require('azure-iot-common');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config()
 // import uuid
 const { v4: uuidv4 } = require('uuid');
+
+
+const uri = process.env.MONGO_URI;
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
+
 
 
 app.use(bodyParser.json()); // support json encoded bodies
@@ -43,7 +57,9 @@ app.post("/open/:id", async (req, res) => {
     const actionId = uuidv4();
     const command = state ? 'open' : 'close';
     // Create a message and send it to the IoT Hub for a specific device
-    const message = new Message(JSON.stringify({ command }));
+    // csvlike
+    let msgstr = `${actionId},${deviceId},${command}`;
+    const message = new Message(msgstr);
     try {
         await serviceClient.send(deviceId, message);
         res.status(200).json({
@@ -54,6 +70,53 @@ app.post("/open/:id", async (req, res) => {
         res.status(500).send('Failed to send message');
     }
 });
+
+
+app.post("/acknowledge/:id", async (req, res) => {
+    // just log it for now
+    const {actionId} = req.body;
+    const deviceId = req.params.id;
+    const command = 'acknowledge';
+    // connenct to mongodb
+    await client.connect();
+    const database = client.db('iot');
+    const collection = database.collection('actions');
+
+    // save id to db
+    const result = await collection.insertOne({ actionId, deviceId, command });
+    console.log(
+        `${result.insertedCount} documents were inserted with the _id: ${result.insertedId}`,
+    );
+    res.status(200).json({
+        actionId,
+    })
+});
+
+
+
+app.get('/acknowledged/:id', async (req, res) => {
+    // check if the action id is in the db
+    const {id} = req.params;
+    await client.connect();
+    const database = client.db('iot');
+    const collection = database.collection('actions');
+    const query = { actionId: id };
+    const result = await collection.findOne(query);
+    if (result) {
+        res.status(200).json({
+            acknowledged: true,
+        })
+    }
+    else {
+        res.status(200).json({
+            acknowledged: false,
+        })
+    }
+});
+
+
+
+
 
 app.get('/devices', async (req, res) => {
     registry.list((err, deviceList) => {

@@ -12,6 +12,8 @@ const BME280_OPTION = {
   i2cAddress: BME280.BME280_DEFAULT_I2C_ADDRESS() // defaults to 0x77
 };
 const LEDPin = 4;
+
+const host = 'http://localhost:3000';
 const connectionString = 'HostName=Cumulonimbus.azure-devices.net;DeviceId=MAM;SharedAccessKey=8isOvU3x6X+QXBuXFEQGxZcqZo9Gv4O69AIoTECzwYA='
 
 var sendingMessage = false;
@@ -76,8 +78,22 @@ function onStop(request, response) {
 }
 
 function updateDatabase(actionId, deviceId, command) {
+    let url = host+'/acknowledge/' + deviceId;
+    let data = {
+        actionId,
+        command,
+    };
+    fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(res => res.json())
+    .then(json => console.log(json))
+    .catch(err => console.error(err));
 
-    // connect to database
 }
 
 
@@ -86,7 +102,9 @@ function receiveMessageCallback(msg) {
   var message = msg.getData().toString('utf-8');
   client.complete(msg, function () {
         console.log('Receive message: ' + message);
-        const {actionId, deviceId, command} = JSON.parse(message);
+      let dt = message.split(',');
+
+      const [actionId, deviceId, command] = dt;
         // check for open or close command
         if (message === 'open') {
             wpi.digitalWrite(LEDPin, 1);
