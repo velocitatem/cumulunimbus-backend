@@ -13,13 +13,12 @@ const BME280_OPTION = {
 };
 const LEDPin = 4;
 
-const host = 'http://localhost:3000';
-const connectionString = 'HostName=Cumulonimbus.azure-devices.net;DeviceId=MAM;SharedAccessKey=8isOvU3x6X+QXBuXFEQGxZcqZo9Gv4O69AIoTECzwYA='
+const host = 'https://7b53-2a0c-5a82-e40d-5700-30c8-d84b-b5b9-608a.ngrok-free.app';
+const connectionString = ''
 
 var sendingMessage = false;
 var messageId = 0;
 var client, sensor;
-var blinkLEDTimeout = null;
 
 function getMessage(cb) {
   messageId++;
@@ -48,7 +47,6 @@ function sendMessage() {
       if (err) {
         console.error('Failed to send message to Azure IoT Hub');
       } else {
-        blinkLED();
         console.log('Message sent to Azure IoT Hub');
       }
     });
@@ -98,7 +96,6 @@ function updateDatabase(actionId, deviceId, command) {
 
 
 function receiveMessageCallback(msg) {
-  blinkLED();
   var message = msg.getData().toString('utf-8');
   client.complete(msg, function () {
         console.log('Receive message: ' + message);
@@ -106,10 +103,10 @@ function receiveMessageCallback(msg) {
 
       const [actionId, deviceId, command] = dt;
         // check for open or close command
-        if (message === 'open') {
+        if (command === 'open') {
             wpi.digitalWrite(LEDPin, 1);
         }
-        else if (message === 'close') {
+        else if (command === 'close') {
             wpi.digitalWrite(LEDPin, 0);
         }
 
@@ -118,16 +115,20 @@ function receiveMessageCallback(msg) {
   });
 }
 
-function blinkLED() {
-  // Light up LED for 500 ms
-  if(blinkLEDTimeout) {
-       clearTimeout(blinkLEDTimeout);
-   }
-  wpi.digitalWrite(LEDPin, 1);
-  blinkLEDTimeout = setTimeout(function () {
-    wpi.digitalWrite(LEDPin, 0);
-  }, 500);
+function toggleLED() {
+    // swtich LED on or off
+    let state = wpi.digitalRead(LEDPin);
+    if (state === 0) {
+        wpi.digitalWrite(LEDPin, 1);
+    }
+    else {
+        wpi.digitalWrite(LEDPin, 0);
+    }
+
 }
+
+
+
 
 // set up wiring
 wpi.setup('wpi');
