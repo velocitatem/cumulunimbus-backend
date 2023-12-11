@@ -13,8 +13,8 @@ const BME280_OPTION = {
 };
 const LEDPin = 4;
 
-const host = 'https://7b53-2a0c-5a82-e40d-5700-30c8-d84b-b5b9-608a.ngrok-free.app';
-const connectionString = ''
+const host = 'https://cumulunimbus-web.azurewebsites.net';
+const connectionString = `HostName=Cumulonimbus.azure-devices.net;DeviceId=MAM;SharedAccessKey=8isOvU3x6X+QXBuXFEQGxZcqZo9Gv4O69AIoTECzwYA=`;
 
 var sendingMessage = false;
 var messageId = 0;

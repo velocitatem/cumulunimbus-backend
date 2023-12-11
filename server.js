@@ -115,7 +115,14 @@ app.get('/acknowledged/:id', async (req, res) => {
 });
 
 
-
+app.get('/status', (req, res) => {
+    // chekc if the client is connected
+    let stats = {
+        'mongo': client.isConnected() ? 'connected' : 'not connected',
+        'iot': serviceClient ? 'connected' : 'not connected',
+    }
+    res.status(200).json(stats);
+});
 
 
 app.get('/devices', async (req, res) => {
@@ -129,6 +136,40 @@ app.get('/devices', async (req, res) => {
     });
 });
 
+
+app.post('/devices/:id', async (req, res) => {
+    const {id} = req.params;
+    const device = {
+        deviceId: id,
+    };
+    registry.create(device, (err, deviceInfo, result) => {
+        if (err) {
+            res.status(500).send('Error creating device: ' + err.message);
+        } else {
+            res.send(deviceInfo);
+        }
+    });
+});
+
+
+app.get("/connect/:id", async (req, res) => {
+    // return connection string
+    // const connectionString = `HostName=Cumulonimbus.azure-devices.net;DeviceId=${ID};SharedAccessKey=8isOvU3x6X+QXBuXFEQGxZcqZo9Gv4O69AIoTECzwYA=`;
+    const {id} = req.params;
+    let key = '';
+    try {
+        const device = await registry.get(id);
+        console.log('Device: ' + JSON.stringify(device));
+        key = device.authentication.symmetricKey.primaryKey;
+    } catch (err) {
+        console.error('Could not get device: ' + err.message);
+        res.status(500).send('Failed to get device');
+    }
+    const connectionString = `HostName=Cumulonimbus.azure-devices.net;DeviceId=${id};SharedAccessKey=${key}`;
+    res.status(200).json({
+        connectionString,
+    })
+});
 
 
 app.get('/', (req, res) => {
